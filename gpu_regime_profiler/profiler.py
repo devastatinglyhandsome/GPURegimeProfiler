@@ -21,17 +21,33 @@ class GPUProfiler:
     # Class variables for calibrated thresholds (per GPU)
     _calibration_cache: Dict[str, EmpiricalThresholds] = {}
     _gpu_specs_cache: Dict[int, GPUSpecs] = {}
+    ngrok_token: Optional[str] = None  # Class variable for ngrok token
     
-    def __init__(self, device_id: int = 0, force_recalibration: bool = False):
+    def __init__(self, device_id: int = 0, force_recalibration: bool = False, ngrok_token: Optional[str] = None):
         """
         Initialize GPU profiler with hardware-adaptive calibration.
         
         Args:
             device_id: CUDA device ID to use
             force_recalibration: If True, force recalibration even if cached
+            ngrok_token: Optional ngrok auth token for real-time dashboard access.
+                        If not provided, real-time dashboarding will not be available.
+                        Can be set later via: GPUProfiler.ngrok_token = "your_token"
         """
         if not torch.cuda.is_available():
             raise CUDANotAvailableError()
+        
+        # Set ngrok token (instance or class level)
+        if ngrok_token:
+            GPUProfiler.ngrok_token = ngrok_token
+        elif not GPUProfiler.ngrok_token:
+            print("\n" + "="*60)
+            print("NOTE: Real-time dashboarding not available")
+            print("="*60)
+            print("To enable real-time dashboard access, set ngrok token:")
+            print("  Option 1: GPUProfiler(ngrok_token='your_token')")
+            print("  Option 2: GPUProfiler.ngrok_token = 'your_token'")
+            print("="*60 + "\n")
         
         self.device_id = device_id
         self.device = torch.device(f'cuda:{device_id}')

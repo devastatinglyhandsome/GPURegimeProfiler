@@ -163,6 +163,15 @@ def start_dashboard_with_ngrok(
     time.sleep(2)
     
     # Set up ngrok tunnel (simple, like Colab example)
+    # Try to get token from GPUProfiler if not provided
+    if not auth_token and not auth_token_file:
+        try:
+            from .profiler import GPUProfiler
+            if GPUProfiler.ngrok_token:
+                auth_token = GPUProfiler.ngrok_token
+        except:
+            pass
+    
     try:
         url = setup_ngrok_tunnel(port, auth_token=auth_token, auth_token_file=auth_token_file)
         if url:
