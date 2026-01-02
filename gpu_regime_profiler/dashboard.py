@@ -160,8 +160,30 @@ def start_dashboard_with_ngrok(
         # Start non-blocking server
         _start_dashboard(port=port, host=host)
     
-    # Wait for server to start
-    time.sleep(3)
+    # Wait for server to start and verify it's running
+    print(f"Waiting for server to start on port {port}...")
+    max_retries = 10
+    server_ready = False
+    
+    for i in range(max_retries):
+        time.sleep(1)
+        try:
+            import socket
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            result = sock.connect_ex(('127.0.0.1', port))
+            sock.close()
+            if result == 0:
+                server_ready = True
+                print(f"✓ Server is ready on port {port}")
+                break
+        except:
+            pass
+        print(f"  Retry {i+1}/{max_retries}...")
+    
+    if not server_ready:
+        print(f"⚠️  Warning: Server may not be ready on port {port}")
+        print("   Continuing anyway, but ngrok may fail...")
+        time.sleep(2)  # Give it a bit more time
     
     # Set up ngrok tunnel
     try:
