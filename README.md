@@ -430,10 +430,10 @@ MIT License
 If you use GPURegimeProfiler in your research, please cite:
 
 ```bibtex
-@software{gpuregimeprofiler2024,
+@software{gpuregimeprofiler2026,
   title={GPURegimeProfiler: Hardware-Adaptive GPU Performance Profiling},
   author={GPU Performance Team},
-  year={2024},
+  year={2026},
   url={https://github.com/yourusername/gpuProfiler}
 }
 ```
