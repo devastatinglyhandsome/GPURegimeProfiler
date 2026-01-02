@@ -785,17 +785,30 @@ class DashboardServer:
             }
             charts.runtime.update('none');
             
-            // Regime distribution
-            const regimeCounts = { OVERHEAD_BOUND: 0, MEMORY_BOUND: 0, COMPUTE_BOUND: 0 };
-            charts.regime.data.datasets[0].data.forEach((val, idx) => {
-                regimeCounts[charts.regime.data.labels[idx]] = val;
-            });
-            regimeCounts[profileData.regime || 'UNKNOWN'] = (regimeCounts[profileData.regime || 'UNKNOWN'] || 0) + 1;
-            charts.regime.data.datasets[0].data = [
-                regimeCounts.OVERHEAD_BOUND,
-                regimeCounts.MEMORY_BOUND,
-                regimeCounts.COMPUTE_BOUND
-            ];
+            // Regime distribution - maintain counts across all profiles
+            if (!window.regimeCounts) {
+                window.regimeCounts = { OVERHEAD_BOUND: 0, MEMORY_BOUND: 0, COMPUTE_BOUND: 0 };
+            }
+            
+            // Increment count for this regime
+            const regime = profileData.regime || 'UNKNOWN';
+            if (regime === 'OVERHEAD_BOUND' || regime === 'MEMORY_BOUND' || regime === 'COMPUTE_BOUND') {
+                window.regimeCounts[regime] = (window.regimeCounts[regime] || 0) + 1;
+            }
+            
+            // Calculate total and percentages
+            const total = window.regimeCounts.OVERHEAD_BOUND + 
+                         window.regimeCounts.MEMORY_BOUND + 
+                         window.regimeCounts.COMPUTE_BOUND;
+            
+            if (total > 0) {
+                // Update chart with counts (Chart.js will show them as percentages if configured)
+                charts.regime.data.datasets[0].data = [
+                    window.regimeCounts.OVERHEAD_BOUND,
+                    window.regimeCounts.MEMORY_BOUND,
+                    window.regimeCounts.COMPUTE_BOUND
+                ];
+            }
             charts.regime.update();
             
             // FLOPS utilization
