@@ -16,7 +16,7 @@ except ImportError:
     DashboardServer = None
 
 
-def start_dashboard_server(port: int = 8080, host: str = "127.0.0.1", blocking: bool = False):
+def start_dashboard_server(port: int = 8080, host: str = "0.0.0.0", blocking: bool = False):
     """
     Start the dashboard server.
     

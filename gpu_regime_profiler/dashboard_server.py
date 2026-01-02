@@ -72,7 +72,12 @@ class DashboardServer:
         async def get_dashboard():
             """Serve the dashboard HTML."""
             html_content = self._get_dashboard_html()
-            return HTMLResponse(content=html_content)
+            return HTMLResponse(content=html_content, status_code=200)
+        
+        @self.app.get("/health")
+        async def health_check():
+            """Health check endpoint."""
+            return {"status": "ok", "service": "gpu-regime-profiler-dashboard"}
         
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
@@ -911,13 +916,13 @@ class DashboardServer:
 </html>"""
 
 
-def start_dashboard(port: int = 8080, host: str = "127.0.0.1"):
+def start_dashboard(port: int = 8080, host: str = "0.0.0.0"):
     """
     Start the dashboard server.
     
     Args:
         port: Port to run the server on (default: 8080)
-        host: Host to bind to (default: 127.0.0.1)
+        host: Host to bind to (default: 0.0.0.0 for Colab compatibility)
     
     Returns:
         uvicorn.Server instance
@@ -933,13 +938,13 @@ def start_dashboard(port: int = 8080, host: str = "127.0.0.1"):
     uvicorn_server = uvicorn.Server(config)
     
     print(f"GPU Regime Profiler Dashboard starting...")
-    print(f"Dashboard available at: http://{host}:{port}")
-    print(f"WebSocket endpoint: ws://{host}:{port}/ws")
+    print(f"Dashboard available at: http://127.0.0.1:{port}")
+    print(f"WebSocket endpoint: ws://127.0.0.1:{port}/ws")
     
     return uvicorn_server
 
 
-def run_dashboard(port: int = 8080, host: str = "127.0.0.1"):
+def run_dashboard(port: int = 8080, host: str = "0.0.0.0"):
     """
     Run the dashboard server (blocking).
     
