@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from .profiler import GPUProfiler
 
 
-def profile_regime(log_to=None, show_dashboard=False, device_id: int = 0):
+def profile_regime(log_to=None, show_dashboard=False, send_to_dashboard=False, device_id: int = 0):
     """
     Decorator for automatic profiling.
     
@@ -27,15 +27,31 @@ def profile_regime(log_to=None, show_dashboard=False, device_id: int = 0):
     Args:
         log_to: Logger object with .log() method (e.g., wandb, tensorboard)
         show_dashboard: If True, show visualization dashboard after each call
+        send_to_dashboard: If True, send profiling data to real-time dashboard (default: False)
         device_id: CUDA device ID to use
     """
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            # Use lightweight mode if sending to dashboard to minimize overhead
+            lightweight = send_to_dashboard
+            
             profiler = GPUProfiler(device_id=device_id)
             result, analysis = profiler.profile_with_result(
-                lambda: func(*args, **kwargs)
+                lambda: func(*args, **kwargs),
+                lightweight=lightweight
             )
+            
+            # Send to dashboard (non-blocking, opt-in)
+            if send_to_dashboard:
+                try:
+                    from .dashboard_client import get_dashboard_client
+                    client = get_dashboard_client()
+                    if client:
+                        client.send_profile(analysis, blocking=False)
+                except Exception:
+                    # Silent failure - don't break profiling
+                    pass
             
             if log_to is not None:
                 log_data = {

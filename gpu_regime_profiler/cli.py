@@ -16,8 +16,29 @@ def main():
                        help='Profile specific operation')
     parser.add_argument('--size', type=int, default=1000000,
                        help='Problem size for profiling')
+    parser.add_argument('--dashboard', action='store_true',
+                       help='Start real-time dashboard server')
+    parser.add_argument('--dashboard-port', type=int, default=8080,
+                       help='Port for dashboard server (default: 8080)')
+    parser.add_argument('--dashboard-host', type=str, default='127.0.0.1',
+                       help='Host for dashboard server (default: 127.0.0.1)')
     
     args = parser.parse_args()
+    
+    # Handle dashboard command
+    if args.dashboard:
+        try:
+            from .dashboard import start_dashboard_server
+            print(f"Starting dashboard server on http://{args.dashboard_host}:{args.dashboard_port}")
+            start_dashboard_server(port=args.dashboard_port, host=args.dashboard_host, blocking=True)
+            return
+        except ImportError:
+            print("Dashboard dependencies not installed. Install with:")
+            print("  pip install 'gpu-regime-profiler[dashboard]'")
+            return
+        except KeyboardInterrupt:
+            print("\nDashboard server stopped.")
+            return
     
     if not torch.cuda.is_available():
         print("CUDA not available. GPU profiling requires CUDA.")

@@ -43,6 +43,19 @@ setup(
         ],
     },
     keywords="gpu profiling performance optimization pytorch cuda",
+    extras_require={
+        'dashboard': [
+            'fastapi>=0.100.0',
+            'uvicorn[standard]>=0.23.0',
+            'websockets>=11.0',
+            'requests>=2.28.0',
+            'python-multipart>=0.0.5',
+        ],
+        'dev': [
+            'pytest>=7.0.0',
+            'pytest-cov>=4.0.0',
+        ],
+    },
     project_urls={
         "Bug Reports": "https://github.com/devastatinglyhandsome/GPURegimeProfiler/issues",
         "Source": "https://github.com/devastatinglyhandsome/GPURegimeProfiler",

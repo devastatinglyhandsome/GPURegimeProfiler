@@ -90,3 +90,17 @@ __all__ = [
     # Visualization
     "create_performance_plots",
 ]
+
+# Dashboard (optional - only available if dependencies installed)
+try:
+    from .dashboard import start_dashboard_server, start_dashboard
+    from .dashboard_client import DashboardClient, get_dashboard_client
+    __all__.extend([
+        "start_dashboard_server",
+        "start_dashboard",
+        "DashboardClient",
+        "get_dashboard_client",
+    ])
+except ImportError:
+    # Dashboard not available - dependencies not installed
+    pass
