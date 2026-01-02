@@ -16,6 +16,8 @@ def create_performance_plots():
     cos_times = []
     matmul_times = []
     regimes = []
+    memory_usage = []
+    oom_risks = []
     
     print("Creating epic GPU performance visualization...")
     
@@ -25,6 +27,14 @@ def create_performance_plots():
         result = profiler.profile_operation(torch.cos, x)
         cos_times.append(result['runtime_ms'])
         regimes.append(result['regime'])
+        
+        # Get memory info if available
+        if 'memory' in result:
+            memory_usage.append(result['memory'].get('peak_allocated_mb', 0.0))
+            oom_risks.append(result['memory'].get('oom_risk', 'UNKNOWN'))
+        else:
+            memory_usage.append(0.0)
+            oom_risks.append('UNKNOWN')
         
         # Profile matmul operation (square matrices)
         dim = int(np.sqrt(size))
@@ -36,8 +46,8 @@ def create_performance_plots():
         else:
             matmul_times.append(0)
     
-    # Create epic 2x2 subplot with modern styling
-    fig = plt.figure(figsize=(16, 12), facecolor='#0a0a0a')
+    # Create epic 2x3 subplot with modern styling (5 panels + 1 empty or combined)
+    fig = plt.figure(figsize=(20, 12), facecolor='#0a0a0a')
     fig.suptitle('GPU Performance Regime Analysis', fontsize=24, color='#00ff88', fontweight='bold', y=0.95)
     
     # Custom color scheme
@@ -48,7 +58,7 @@ def create_performance_plots():
     }
     
     # Plot 1: Execution Time Scaling (top-left)
-    ax1 = plt.subplot(2, 2, 1, facecolor='#111111')
+    ax1 = plt.subplot(2, 3, 1, facecolor='#111111')
     ax1.loglog(sizes, cos_times, 'o-', color='#00aaff', linewidth=3, markersize=8, label='cos', alpha=0.8)
     valid_matmul = [t for t in matmul_times if t > 0]
     ax1.loglog(sizes[:len(valid_matmul)], valid_matmul, 's-', color='#ff6600', linewidth=3, markersize=8, label='matmul', alpha=0.8)
@@ -59,8 +69,8 @@ def create_performance_plots():
     ax1.grid(True, alpha=0.3, color='#333333')
     ax1.tick_params(colors='white')
     
-    # Plot 2: Throughput Analysis (top-right)
-    ax2 = plt.subplot(2, 2, 2, facecolor='#111111')
+    # Plot 2: Throughput Analysis (top-center)
+    ax2 = plt.subplot(2, 3, 2, facecolor='#111111')
     throughput_cos = [s/t*1000 for s, t in zip(sizes, cos_times)]
     throughput_matmul = [s/t*1000 for s, t in zip(sizes, matmul_times) if t > 0]
     
@@ -73,8 +83,8 @@ def create_performance_plots():
     ax2.grid(True, alpha=0.3, color='#333333')
     ax2.tick_params(colors='white')
     
-    # Plot 3: Memory Bandwidth Heatmap (bottom-left)
-    ax3 = plt.subplot(2, 2, 3, facecolor='#111111')
+    # Plot 3: Memory Bandwidth Heatmap (top-right)
+    ax3 = plt.subplot(2, 3, 3, facecolor='#111111')
     tesla_t4_bandwidth = 320e9
     cos_bandwidth = [s*4*2/t*1e-6 for s, t in zip(sizes, cos_times)]
     cos_utilization = [bw/tesla_t4_bandwidth*100 for bw in cos_bandwidth]
@@ -98,8 +108,8 @@ def create_performance_plots():
     cbar.set_label('Bandwidth %', color='white', fontsize=12)
     cbar.ax.tick_params(colors='white')
     
-    # Plot 4: Regime Classification with Epic Styling (bottom-right)
-    ax4 = plt.subplot(2, 2, 4, facecolor='#111111')
+    # Plot 4: Regime Classification with Epic Styling (bottom-left)
+    ax4 = plt.subplot(2, 3, 4, facecolor='#111111')
     
     # Create regime-colored scatter plot
     regime_colors_list = [colors[r] for r in regimes]
@@ -125,13 +135,53 @@ def create_performance_plots():
     ax4.grid(True, alpha=0.3, color='#333333')
     ax4.tick_params(colors='white')
     
+    # Plot 5: Memory Usage (new panel - bottom center or right)
+    ax5 = plt.subplot(2, 3, 5, facecolor='#111111')
+    
+    # Get total available memory
+    total_memory_mb = torch.cuda.get_device_properties(0).total_memory / (1024 ** 2)
+    
+    # Create bar chart for memory usage
+    used_memory = memory_usage
+    available_memory = [total_memory_mb - m for m in used_memory]
+    
+    x_pos = np.arange(len(sizes))
+    width = 0.6
+    
+    # Color bars based on OOM risk
+    oom_colors = {
+        'HIGH': '#ff4444',
+        'MEDIUM': '#ffaa00',
+        'LOW': '#00ff88',
+        'UNKNOWN': '#888888'
+    }
+    bar_colors = [oom_colors.get(risk, '#888888') for risk in oom_risks]
+    
+    bars = ax5.bar(x_pos, used_memory, width, label='Used', color=bar_colors, alpha=0.8)
+    ax5.bar(x_pos, available_memory, width, bottom=used_memory, label='Available', color='#333333', alpha=0.5)
+    
+    # Add warning markers for HIGH risk
+    for i, (risk, mem) in enumerate(zip(oom_risks, used_memory)):
+        if risk == 'HIGH':
+            ax5.scatter(i, mem, marker='!', s=200, color='#ff0000', zorder=5)
+    
+    ax5.set_xlabel('Problem Size Index', fontsize=14, color='white')
+    ax5.set_ylabel('Memory (MB)', fontsize=14, color='white')
+    ax5.set_title('Memory Usage & OOM Risk', fontsize=16, color='#00ff88', fontweight='bold')
+    ax5.set_xticks(x_pos)
+    ax5.set_xticklabels([f'{s//1000}k' if s < 1000000 else f'{s//1000000}M' for s in sizes], rotation=45, ha='right')
+    ax5.legend(fontsize=12)
+    ax5.grid(True, alpha=0.3, color='#333333', axis='y')
+    ax5.tick_params(colors='white')
+    ax5.axhline(y=total_memory_mb * 0.9, color='#ff4444', linestyle='--', linewidth=2, alpha=0.7, label='90% Warning')
+    
     # Add GPU info text
     gpu_name = torch.cuda.get_device_name(0)
     fig.text(0.02, 0.02, f'GPU: {gpu_name}', fontsize=12, color='#888888', alpha=0.7)
-    fig.text(0.98, 0.02, 'GPURegimeProfiler v0.1.0', fontsize=12, color='#888888', alpha=0.7, ha='right')
+    fig.text(0.98, 0.02, 'GPURegimeProfiler v1.0.0', fontsize=12, color='#888888', alpha=0.7, ha='right')
     
     plt.tight_layout()
-    plt.subplots_adjust(top=0.92, bottom=0.08)
+    plt.subplots_adjust(top=0.92, bottom=0.10)
     plt.savefig('gpu_performance_analysis.png', dpi=200, bbox_inches='tight', facecolor='#0a0a0a')
     plt.show()
     
