@@ -103,8 +103,20 @@ def setup_ngrok_tunnel(port: int = 8080, auth_token: Optional[str] = None, auth_
         if auth_token:
             ngrok.set_auth_token(auth_token)
         
-        # Create tunnel
-        tunnel = ngrok.connect(port, bind_tls=True)
+        # Verify server is running before connecting ngrok
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        result = sock.connect_ex(('127.0.0.1', port))
+        sock.close()
+        if result != 0:
+            raise ConnectionError(
+                f"Server is not running on port {port}. "
+                f"Start the server first with: start_dashboard_server(port={port})"
+            )
+        
+        # Create tunnel - explicitly use 127.0.0.1:port format
+        # This ensures IPv4 connection instead of IPv6 [::1]
+        tunnel = ngrok.connect(f"127.0.0.1:{port}", bind_tls=True)
         public_url = tunnel.public_url
         
         print(f"✓ Ngrok tunnel established!")
