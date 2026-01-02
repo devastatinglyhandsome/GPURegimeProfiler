@@ -16,8 +16,8 @@ GPU performance profiler with automatic three-regime classification for identify
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd gpuProfiler
+git clone https://github.com/devastatinglyhandsome/GPURegimeProfiler.git
+cd GPURegimeProfiler
 
 # Install in development mode (installs all dependencies)
 pip install -e .
@@ -432,8 +432,8 @@ If you use GPURegimeProfiler in your research, please cite:
 ```bibtex
 @software{gpuregimeprofiler2026,
   title={GPURegimeProfiler: Hardware-Adaptive GPU Performance Profiling},
-  author={GPU Performance Team},
+  author={Prithiv},
   year={2026},
-  url={https://github.com/yourusername/gpuProfiler}
+  url={https://github.com/devastatinglyhandsome/GPURegimeProfiler}
 }
 ```
