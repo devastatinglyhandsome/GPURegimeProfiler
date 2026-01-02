@@ -103,30 +103,19 @@ def setup_ngrok_tunnel(port: int = 8080, auth_token: Optional[str] = None, auth_
         if auth_token:
             ngrok.set_auth_token(auth_token)
         
-        # Verify server is running before connecting ngrok
-        import socket
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        result = sock.connect_ex(('127.0.0.1', port))
-        sock.close()
-        if result != 0:
-            raise ConnectionError(
-                f"Server is not running on port {port}. "
-                f"Start the server first with: start_dashboard_server(port={port})"
-            )
-        
-        # Create tunnel - explicitly use 127.0.0.1:port format
-        # This ensures IPv4 connection instead of IPv6 [::1]
-        tunnel = ngrok.connect(f"127.0.0.1:{port}", bind_tls=True)
+        # Create tunnel - simple like Colab example
+        # Use port number directly (ngrok handles localhost automatically)
+        tunnel = ngrok.connect(port, bind_tls=True)
         public_url = tunnel.public_url
         
-        print(f"✓ Ngrok tunnel established!")
+        print(f"Ngrok tunnel established!")
         print(f"  Public URL: {public_url}")
         print(f"  Local URL: http://127.0.0.1:{port}")
         
         return public_url
         
     except Exception as e:
-        print(f"✗ Ngrok setup error: {e}")
+        print(f"Ngrok setup error: {e}")
         print("  Note: You may need to set an auth token:")
         print("  Get one from: https://dashboard.ngrok.com/get-started/your-authtoken")
         return None
@@ -141,6 +130,7 @@ def start_dashboard_with_ngrok(
 ) -> Optional[str]:
     """
     Start dashboard server with ngrok tunnel (for Colab/remote access).
+    Simplified pattern matching Colab's Flask example.
     
     Args:
         port: Port to run the server on
@@ -155,8 +145,6 @@ def start_dashboard_with_ngrok(
     Example:
         >>> url = start_dashboard_with_ngrok(port=8080)
         >>> print(f"Dashboard: {url}")
-        >>> # Or with token file:
-        >>> url = start_dashboard_with_ngrok(port=8080, auth_token_file="Q/ngrok")
     """
     if not DASHBOARD_AVAILABLE:
         raise ImportError(
@@ -164,47 +152,23 @@ def start_dashboard_with_ngrok(
             "pip install 'gpu-regime-profiler[dashboard]'"
         )
     
-    # Start server in background
-    if blocking:
-        # Start non-blocking server first
-        _start_dashboard(port=port, host=host)
-    else:
-        # Start non-blocking server
-        _start_dashboard(port=port, host=host)
+    # Start server in background thread (like Colab Flask example)
+    def run_server():
+        run_dashboard(port=port, host=host)
     
-    # Wait for server to start and verify it's running
-    print(f"Waiting for server to start on port {port}...")
-    max_retries = 10
-    server_ready = False
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
     
-    for i in range(max_retries):
-        time.sleep(1)
-        try:
-            import socket
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            result = sock.connect_ex(('127.0.0.1', port))
-            sock.close()
-            if result == 0:
-                server_ready = True
-                print(f"✓ Server is ready on port {port}")
-                break
-        except:
-            pass
-        print(f"  Retry {i+1}/{max_retries}...")
+    # Give server a moment to start (like Colab example)
+    time.sleep(2)
     
-    if not server_ready:
-        print(f"⚠️  Warning: Server may not be ready on port {port}")
-        print("   Continuing anyway, but ngrok may fail...")
-        time.sleep(2)  # Give it a bit more time
-    
-    # Set up ngrok tunnel
+    # Set up ngrok tunnel (simple, like Colab example)
     try:
         url = setup_ngrok_tunnel(port, auth_token=auth_token, auth_token_file=auth_token_file)
         if url:
             print(f"\n{'='*60}")
-            print(f"🌐 DASHBOARD URL: {url}")
+            print(f"DASHBOARD URL: {url}")
             print(f"{'='*60}")
-            print(f"\nWebSockets are fully supported via ngrok!")
             if blocking:
                 try:
                     # Keep running until interrupted
@@ -217,12 +181,10 @@ def start_dashboard_with_ngrok(
             return url
     except Exception as e:
         print(f"Ngrok setup failed: {e}")
-        print("Falling back to local server")
+        print(f"Dashboard running locally at: http://{host}:{port}")
     
-    print(f"Dashboard running at: http://{host}:{port}")
     if blocking:
         try:
-            # Keep running until interrupted
             while True:
                 time.sleep(1)
         except KeyboardInterrupt:
