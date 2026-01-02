@@ -7,11 +7,11 @@ Provides convenient functions to start and manage the dashboard server.
 from typing import Optional
 
 try:
-    from .dashboard_server import start_dashboard, run_dashboard, DashboardServer
+    from .dashboard_server import start_dashboard as _start_dashboard, run_dashboard, DashboardServer
     DASHBOARD_AVAILABLE = True
 except ImportError:
     DASHBOARD_AVAILABLE = False
-    start_dashboard = None
+    _start_dashboard = None
     run_dashboard = None
     DashboardServer = None
 
@@ -44,7 +44,7 @@ def start_dashboard_server(port: int = 8080, host: str = "127.0.0.1", blocking: 
         run_dashboard(port=port, host=host)
         return None
     else:
-        return start_dashboard(port=port, host=host)
+        return _start_dashboard(port=port, host=host)
 
 
 # Alias for convenience
