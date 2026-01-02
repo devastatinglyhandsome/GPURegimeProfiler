@@ -328,6 +328,92 @@ precision = detect_precision(x)  # Precision.FP16
 # Profiler automatically adjusts peak FLOPS for tensor cores
 ```
 
+## Real-Time Dashboard
+
+Monitor GPU profiling in real-time with an interactive web dashboard. The dashboard provides live updates of regime classification, performance metrics, GPU utilization, and memory usage.
+
+![Dashboard](gpu_regime_profiler/docs/dashboard.png)
+
+### Quick Start
+
+```python
+import torch
+from gpu_regime_profiler import (
+    GPUProfiler,
+    DashboardClient,
+    start_dashboard_with_ngrok
+)
+
+# Set ngrok token for public access (optional)
+GPUProfiler.ngrok_token = "your_ngrok_token"
+
+# Start dashboard with ngrok tunnel (for remote access)
+url = start_dashboard_with_ngrok(port=8080, blocking=False)
+print(f"Dashboard URL: {url}")
+
+# Create profiler and client
+profiler = GPUProfiler()
+client = DashboardClient(server_url='http://127.0.0.1:8080')
+
+# Profile operations - data appears in dashboard in real-time
+for i in range(20):
+    a = torch.randn(2000, 2000, device='cuda')
+    b = torch.randn(2000, 2000, device='cuda')
+    _, profile = profiler.profile_with_result(torch.matmul, a, b)
+    client.send_profile(profile)
+```
+
+### Dashboard Features
+
+- **Real-time regime classification**: See operations classified as OVERHEAD_BOUND, MEMORY_BOUND, or COMPUTE_BOUND as they happen
+- **Performance metrics**: Runtime, FLOPS utilization, and bandwidth utilization over time
+- **GPU utilization**: Live GPU usage monitoring
+- **Memory tracking**: Peak memory usage and OOM risk indicators
+- **Historical data**: View trends and patterns in your profiling data
+- **WebSocket updates**: Zero-overhead real-time updates when not in use
+
+### Installation
+
+Install with dashboard dependencies:
+
+```bash
+pip install 'gpu-regime-profiler[dashboard]'
+```
+
+### Local Dashboard
+
+For local access only:
+
+```python
+from gpu_regime_profiler import start_dashboard_server
+
+# Start dashboard server
+start_dashboard_server(port=8080, blocking=True)
+# Open http://127.0.0.1:8080 in your browser
+```
+
+### Remote Access (Colab/Cloud)
+
+For remote access via ngrok:
+
+```python
+from gpu_regime_profiler import start_dashboard_with_ngrok
+
+# Set ngrok token
+GPUProfiler.ngrok_token = "your_ngrok_token"
+
+# Start dashboard with public URL
+url = start_dashboard_with_ngrok(port=8080)
+# Open the returned URL in your browser
+```
+
+### Command Line
+
+```bash
+# Start dashboard server
+gpu-profile --dashboard --dashboard-port 8080
+```
+
 ## Performance Visualization
 
 ```python
