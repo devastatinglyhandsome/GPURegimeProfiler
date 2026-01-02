@@ -4,7 +4,7 @@
 
 GPU performance profiler with automatic three-regime classification for identifying performance bottlenecks. Based on the "Making Deep Learning Go Brrrr" by Horace He framework.
 
-**Version 1.0.0** - Now with hardware-adaptive calibration, memory tracking, multi-GPU support, attention profiling, and more!
+**Version 1.1.0** - Now with real-time dashboard, hardware-adaptive calibration, memory tracking, multi-GPU support, attention profiling, and more!
 
 ## Installation
 
@@ -338,29 +338,53 @@ Monitor GPU profiling in real-time with an interactive web dashboard. The dashbo
 
 ```python
 import torch
+import time
 from gpu_regime_profiler import (
     GPUProfiler,
     DashboardClient,
     start_dashboard_with_ngrok
 )
 
-# Set ngrok token for public access (optional)
-GPUProfiler.ngrok_token = "your_ngrok_token"
+# Optional: Set ngrok token for public access
+# GPUProfiler.ngrok_token = "your_ngrok_token"
 
-# Start dashboard with ngrok tunnel (for remote access)
+# Start dashboard with ngrok (for remote access)
+# For local only: start_dashboard_server(port=8080, blocking=False)
 url = start_dashboard_with_ngrok(port=8080, blocking=False)
-print(f"Dashboard URL: {url}")
+if url:
+    print(f"Dashboard URL: {url}")
+else:
+    print("Dashboard running at http://127.0.0.1:8080")
+
+time.sleep(2)  # Wait for server to start
 
 # Create profiler and client
 profiler = GPUProfiler()
 client = DashboardClient(server_url='http://127.0.0.1:8080')
 
-# Profile operations - data appears in dashboard in real-time
+print("\nProfiling operations...")
+print("Open the dashboard URL in your browser to see real-time updates!\n")
+
+# Profile various operations
 for i in range(20):
-    a = torch.randn(2000, 2000, device='cuda')
-    b = torch.randn(2000, 2000, device='cuda')
+    size = 1000 + i * 100
+    a = torch.randn(size, size, device='cuda')
+    b = torch.randn(size, size, device='cuda')
+    
     _, profile = profiler.profile_with_result(torch.matmul, a, b)
     client.send_profile(profile)
+    
+    print(f"  [{i+1:2d}/20] Size: {size:4d}x{size:4d} | "
+          f"Regime: {profile['regime']:15s} | "
+          f"Runtime: {profile['runtime_ms']:6.2f}ms")
+    time.sleep(0.3)
+
+print("\nDone! Check the dashboard for visualizations.")
+```
+
+Or run the example script:
+```bash
+python3 example_dashboard.py
 ```
 
 ### Dashboard Features

@@ -28,7 +28,7 @@ from .mixed_precision import (
     get_precision_peak_flops, has_tensor_cores
 )
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 __all__ = [
     # Core profiler
     "GPUProfiler",
