@@ -93,11 +93,16 @@ __all__ = [
 
 # Dashboard (optional - only available if dependencies installed)
 try:
-    from .dashboard import start_dashboard_server, start_dashboard
+    from .dashboard import (
+        start_dashboard_server, start_dashboard,
+        start_dashboard_with_ngrok, setup_ngrok_tunnel
+    )
     from .dashboard_client import DashboardClient, get_dashboard_client
     __all__.extend([
         "start_dashboard_server",
         "start_dashboard",
+        "start_dashboard_with_ngrok",
+        "setup_ngrok_tunnel",
         "DashboardClient",
         "get_dashboard_client",
     ])

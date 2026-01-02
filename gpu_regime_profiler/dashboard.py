@@ -5,6 +5,8 @@ Provides convenient functions to start and manage the dashboard server.
 """
 
 from typing import Optional
+import threading
+import time
 
 try:
     from .dashboard_server import start_dashboard as _start_dashboard, run_dashboard, DashboardServer
@@ -15,6 +17,13 @@ except ImportError:
     run_dashboard = None
     DashboardServer = None
 
+try:
+    from pyngrok import ngrok
+    NGROK_AVAILABLE = True
+except ImportError:
+    NGROK_AVAILABLE = False
+    ngrok = None
+
 
 def start_dashboard_server(port: int = 8080, host: str = "0.0.0.0", blocking: bool = False):
     """
@@ -22,7 +31,7 @@ def start_dashboard_server(port: int = 8080, host: str = "0.0.0.0", blocking: bo
     
     Args:
         port: Port to run the server on (default: 8080)
-        host: Host to bind to (default: 127.0.0.1)
+        host: Host to bind to (default: 0.0.0.0 for Colab compatibility)
         blocking: If True, block until server stops (default: False)
     
     Returns:
@@ -49,4 +58,146 @@ def start_dashboard_server(port: int = 8080, host: str = "0.0.0.0", blocking: bo
 
 # Alias for convenience
 start_dashboard = start_dashboard_server
+
+
+def setup_ngrok_tunnel(port: int = 8080, auth_token: Optional[str] = None, auth_token_file: Optional[str] = None) -> Optional[str]:
+    """
+    Set up ngrok tunnel for the dashboard (supports WebSockets properly).
+    
+    Args:
+        port: Local port the server is running on
+        auth_token: Optional ngrok auth token (get from https://dashboard.ngrok.com/get-started/your-authtoken)
+                    If not provided, will use free tier (limited)
+        auth_token_file: Optional path to file containing ngrok auth token (alternative to auth_token)
+    
+    Returns:
+        Public URL from ngrok, or None if setup failed
+    
+    Example:
+        >>> url = setup_ngrok_tunnel(8080)
+        >>> print(f"Dashboard: {url}")
+    """
+    if not NGROK_AVAILABLE:
+        raise ImportError(
+            "pyngrok not installed. Install with: "
+            "pip install 'gpu-regime-profiler[dashboard]'"
+        )
+    
+    try:
+        # Read token from file if provided
+        if auth_token_file:
+            try:
+                with open(auth_token_file, 'r') as f:
+                    content = f.read().strip()
+                    # Handle both raw token and "ngrok config add-authtoken TOKEN" format
+                    if 'add-authtoken' in content:
+                        token = content.split('add-authtoken')[-1].strip()
+                    else:
+                        token = content
+                    if token:
+                        auth_token = token
+            except Exception as e:
+                print(f"Warning: Could not read auth token from file: {e}")
+        
+        # Set auth token if provided
+        if auth_token:
+            ngrok.set_auth_token(auth_token)
+        
+        # Create tunnel
+        tunnel = ngrok.connect(port, bind_tls=True)
+        public_url = tunnel.public_url
+        
+        print(f"✓ Ngrok tunnel established!")
+        print(f"  Public URL: {public_url}")
+        print(f"  Local URL: http://127.0.0.1:{port}")
+        
+        return public_url
+        
+    except Exception as e:
+        print(f"✗ Ngrok setup error: {e}")
+        print("  Note: You may need to set an auth token:")
+        print("  Get one from: https://dashboard.ngrok.com/get-started/your-authtoken")
+        return None
+
+
+def start_dashboard_with_ngrok(
+    port: int = 8080, 
+    host: str = "0.0.0.0",
+    auth_token: Optional[str] = None,
+    auth_token_file: Optional[str] = None,
+    blocking: bool = False
+) -> Optional[str]:
+    """
+    Start dashboard server with ngrok tunnel (for Colab/remote access).
+    
+    Args:
+        port: Port to run the server on
+        host: Host to bind to (default: 0.0.0.0)
+        auth_token: Optional ngrok auth token for better performance
+        auth_token_file: Optional path to file containing ngrok auth token
+        blocking: If True, block until server stops (default: False)
+    
+    Returns:
+        Public URL if ngrok used, None otherwise
+    
+    Example:
+        >>> url = start_dashboard_with_ngrok(port=8080)
+        >>> print(f"Dashboard: {url}")
+        >>> # Or with token file:
+        >>> url = start_dashboard_with_ngrok(port=8080, auth_token_file="Q/ngrok")
+    """
+    if not DASHBOARD_AVAILABLE:
+        raise ImportError(
+            "Dashboard dependencies not installed. Install with: "
+            "pip install 'gpu-regime-profiler[dashboard]'"
+        )
+    
+    # Start server in background
+    if blocking:
+        # Start non-blocking server first
+        _start_dashboard(port=port, host=host)
+    else:
+        # Start non-blocking server
+        _start_dashboard(port=port, host=host)
+    
+    # Wait for server to start
+    time.sleep(3)
+    
+    # Set up ngrok tunnel
+    try:
+        url = setup_ngrok_tunnel(port, auth_token=auth_token, auth_token_file=auth_token_file)
+        if url:
+            print(f"\n{'='*60}")
+            print(f"🌐 DASHBOARD URL: {url}")
+            print(f"{'='*60}")
+            print(f"\nWebSockets are fully supported via ngrok!")
+            if blocking:
+                try:
+                    # Keep running until interrupted
+                    while True:
+                        time.sleep(1)
+                except KeyboardInterrupt:
+                    print("\nShutting down...")
+                    if NGROK_AVAILABLE:
+                        ngrok.kill()
+            return url
+    except Exception as e:
+        print(f"Ngrok setup failed: {e}")
+        print("Falling back to local server")
+    
+    print(f"Dashboard running at: http://{host}:{port}")
+    if blocking:
+        try:
+            # Keep running until interrupted
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\nShutting down...")
+            if NGROK_AVAILABLE:
+                try:
+                    ngrok.kill()
+                except:
+                    pass
+    
+    return None
 

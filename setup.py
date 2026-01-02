@@ -50,6 +50,7 @@ setup(
             'websockets>=11.0',
             'requests>=2.28.0',
             'python-multipart>=0.0.5',
+            'pyngrok>=5.0.0',
         ],
         'dev': [
             'pytest>=7.0.0',

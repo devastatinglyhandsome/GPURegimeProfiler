@@ -72,12 +72,35 @@ class DashboardServer:
         async def get_dashboard():
             """Serve the dashboard HTML."""
             html_content = self._get_dashboard_html()
-            return HTMLResponse(content=html_content, status_code=200)
+            return HTMLResponse(
+                content=html_content, 
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                }
+            )
         
         @self.app.get("/health")
         async def health_check():
             """Health check endpoint."""
             return {"status": "ok", "service": "gpu-regime-profiler-dashboard"}
+        
+        @self.app.get("/test")
+        async def test_page():
+            """Simple test page to verify server is accessible."""
+            return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+            <head><title>Dashboard Test</title></head>
+            <body style="font-family: Helvetica, Arial, sans-serif; padding: 40px;">
+                <h1>Dashboard Server Test</h1>
+                <p>If you can see this, the server is working!</p>
+                <p><a href="/">Go to Dashboard</a></p>
+            </body>
+            </html>
+            """)
         
         @self.app.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
