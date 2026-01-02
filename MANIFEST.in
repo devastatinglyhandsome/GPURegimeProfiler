@@ -1,0 +1,11 @@
+include README.md
+include LICENSE
+include example_usage.py
+recursive-include tests *.py
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .git*
+global-exclude *.egg-info
+global-exclude dist/
+global-exclude build/
+

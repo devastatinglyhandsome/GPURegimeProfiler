@@ -1,2 +1,0 @@
-gpu_regime_profiler
-tests

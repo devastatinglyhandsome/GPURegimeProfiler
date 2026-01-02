@@ -1,2 +1,0 @@
-[console_scripts]
-gpu-profile = gpu_regime_profiler.cli:main

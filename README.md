@@ -1,5 +1,7 @@
 # GPURegimeProfiler
 
+[![PyPI version](https://badge.fury.io/py/gpu-regime-profiler.svg)](https://badge.fury.io/py/gpu-regime-profiler)
+
 GPU performance profiler with automatic three-regime classification for identifying performance bottlenecks. Based on the "Making Deep Learning Go Brrrr" by Horace He framework.
 
 **Version 1.0.0** - Now with hardware-adaptive calibration, memory tracking, multi-GPU support, attention profiling, and more!
