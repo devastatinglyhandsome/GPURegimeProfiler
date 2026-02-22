@@ -108,14 +108,15 @@ def setup_ngrok_tunnel(port: int = 8080, auth_token: Optional[str] = None, auth_
         if auth_token:
             ngrok.set_auth_token(auth_token)
         
-        # Create tunnel - simple like Colab example
-        # Use port number directly (ngrok handles localhost automatically)
-        tunnel = ngrok.connect(port, bind_tls=True)
+        # Create tunnel: explicit HTTP addr so ngrok forwards to our server (public URL is HTTPS)
+        addr = f"127.0.0.1:{port}"
+        tunnel = ngrok.connect(addr, bind_tls=True)
         public_url = tunnel.public_url
         
         print(f"Ngrok tunnel established!")
         print(f"  Public URL: {public_url}")
         print(f"  Local URL: http://127.0.0.1:{port}")
+        print(f"  If you see ERR_SSL_PROTOCOL_ERROR: use https:// (not http), try incognito or another browser, or use local dashboard at http://127.0.0.1:{port}")
         
         return public_url
         
@@ -210,4 +211,66 @@ def start_dashboard_with_ngrok(
                     pass
     
     return None
+
+
+def start_dashboard_colab(port: int = 8080, host: str = "0.0.0.0", embed: bool = True):
+    """
+    Start the dashboard on Google Colab (no ngrok). Uses Colab's built-in port
+    proxy so you can view the dashboard in the notebook or via Colab's preview link.
+
+    Args:
+        port: Port to run the server on (default: 8080)
+        host: Host to bind to (default: 0.0.0.0)
+        embed: If True and running in Colab, try to embed the dashboard in an iframe below the cell (default: True)
+
+    Returns:
+        The dashboard server. Use DashboardClient(server_url=f'http://127.0.0.1:{port}') to send profiles.
+
+    Example (run in a Colab cell):
+        >>> from gpu_regime_profiler import start_dashboard_colab, GPUProfiler, DashboardClient
+        >>> start_dashboard_colab(port=8080)
+        >>> profiler = GPUProfiler()
+        >>> client = DashboardClient(server_url='http://127.0.0.1:8080')
+        >>> _, profile = profiler.profile_with_result(torch.matmul, a, b)
+        >>> client.send_profile(profile)
+    """
+    if not DASHBOARD_AVAILABLE:
+        raise ImportError(
+            "Dashboard dependencies not installed. Install with: "
+            "pip install 'gpu-regime-profiler[dashboard]'"
+        )
+    server = _start_dashboard(port=port, host=host)
+    thread = threading.Thread(target=server.run, daemon=False)
+    thread.start()
+    time.sleep(1)
+    in_colab = False
+    try:
+        import google.colab  # noqa: F401
+        in_colab = True
+    except ImportError:
+        pass
+    if in_colab and embed:
+        try:
+            from google.colab import output
+            js = f"""
+            (async () => {{
+              const url = await google.colab.kernel.proxyPort({port});
+              const iframe = document.createElement('iframe');
+              iframe.src = url;
+              iframe.width = '100%';
+              iframe.height = '600';
+              iframe.style.border = 'none';
+              document.body.appendChild(iframe);
+              return url;
+            }})()
+            """
+            output.eval_js(js)
+            print(f"Dashboard embedded above (port {port}). If the iframe is blank or 403, use the 'Open preview' link Colab shows for port {port}, or run the next cell to print the proxy URL.")
+        except Exception as e:
+            print(f"Colab embed failed ({e}). Dashboard is running on port {port}. Look for 'Open preview' next to the cell output, or run: from google.colab import output; print(output.eval_js(f'google.colab.kernel.proxyPort({port})'))")
+    else:
+        print(f"Dashboard running at http://127.0.0.1:{port}")
+        if in_colab:
+            print("In Colab: look for 'Open preview' next to the cell, or run: from google.colab import output; output.eval_js('google.colab.kernel.proxyPort(%d)')" % port)
+    return server
 

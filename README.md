@@ -78,11 +78,37 @@ client.send_profile(profile)
 
 Refresh the page to see updates. No ngrok, no token, no signup.
 
-### Remote / Colab (ngrok, only if you need a public URL)
+### On Google Colab (no ngrok)
 
-If you run code in Colab (or another remote machine) and want to open the dashboard from your laptop, you need a public URL. Options:
+Use the Colab helper so you don't need ngrok. In a Colab cell:
 
-1. **Colab port forwarding**  
+```python
+!pip install -q 'gpu-regime-profiler[dashboard]'
+```
+
+```python
+import torch
+from gpu_regime_profiler import start_dashboard_colab, GPUProfiler, DashboardClient
+
+start_dashboard_colab(port=8080)   # Embeds in notebook or use "Open preview" link
+
+profiler = GPUProfiler()
+client = DashboardClient(server_url='http://127.0.0.1:8080')
+a = torch.randn(2000, 2000, device='cuda')
+_, profile = profiler.profile_with_result(torch.matmul, a, a)
+client.send_profile(profile)
+```
+
+The dashboard appears in the notebook (iframe) or via Colab's "Open preview" for port 8080. No ngrok, no SSL errors.
+
+### Remote / Colab with ngrok (only if you need a public URL from outside Colab)
+
+If you run code in Colab and want to open the dashboard from your laptop in a separate browser. Options:
+
+1. **Colab port preview (recommended)**  
+   Use `start_dashboard_colab(port=8080)` above, then use the "Open preview" link Colab shows. No ngrok.
+
+2. **ngrok (skip if Colab preview works)**  
    In Colab, use “Local runtimes” or the built-in port preview if available (e.g. “Open preview” for the port you use). No ngrok.
 
 2. **ngrok**  
@@ -99,6 +125,8 @@ print(url)  # Open this in your browser
 ```
 
 If ngrok fails (connection refused, auth, or tunnel issues), use the **local dashboard** on the machine where the code runs and open it via that machine’s port (e.g. Colab’s port preview or SSH port forwarding). The dashboard itself does not require ngrok.
+
+**ERR_SSL_PROTOCOL_ERROR / "invalid response"**: Open the URL with **https://** (ngrok gives HTTPS). Try incognito or a different browser; some networks or proxies break ngrok's TLS. If it still fails, skip ngrok and use Colab port preview or SSH port forwarding instead.
 
 ---
 
