@@ -53,7 +53,12 @@ def start_dashboard_server(port: int = 8080, host: str = "0.0.0.0", blocking: bo
         run_dashboard(port=port, host=host)
         return None
     else:
-        return _start_dashboard(port=port, host=host)
+        server = _start_dashboard(port=port, host=host)
+        thread = threading.Thread(target=server.run, daemon=False)
+        thread.start()
+        # Give the server a moment to bind so the port is listening
+        time.sleep(0.5)
+        return server
 
 
 # Alias for convenience

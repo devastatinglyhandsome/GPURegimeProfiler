@@ -12,7 +12,13 @@ from collections import deque
 from typing import Dict, List, Optional, Set
 from datetime import datetime
 import threading
-import pynvml
+
+try:
+    import pynvml
+    PYNVML_AVAILABLE = True
+except (ImportError, OSError):
+    pynvml = None
+    PYNVML_AVAILABLE = False
 
 try:
     from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -210,7 +216,9 @@ class DashboardServer:
             pass
     
     def _get_gpu_metrics(self) -> Dict:
-        """Get current GPU metrics using pynvml."""
+        """Get current GPU metrics using pynvml. Returns empty GPU list if no GPU or pynvml unavailable (CPU-only)."""
+        if not PYNVML_AVAILABLE or pynvml is None:
+            return {"gpus": [], "count": 0, "cpu_only": True, "message": "No GPU (CPU-only mode)"}
         try:
             pynvml.nvmlInit()
             device_count = pynvml.nvmlDeviceGetCount()
