@@ -91,23 +91,19 @@ __all__ = [
     "create_performance_plots",
 ]
 
-# Dashboard (optional - only available if dependencies installed)
+# Dashboard
 try:
     from .dashboard import (
         start_dashboard_server, start_dashboard,
-        start_dashboard_with_ngrok, setup_ngrok_tunnel,
         start_dashboard_colab,
     )
     from .dashboard_client import DashboardClient, get_dashboard_client
     __all__.extend([
         "start_dashboard_server",
         "start_dashboard",
-        "start_dashboard_with_ngrok",
-        "setup_ngrok_tunnel",
         "start_dashboard_colab",
         "DashboardClient",
         "get_dashboard_client",
     ])
 except ImportError:
-    # Dashboard not available - dependencies not installed
     pass

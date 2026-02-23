@@ -22,6 +22,11 @@ setup(
         "seaborn>=0.11.0",
         "pynvml>=11.0.0",
         "tqdm>=4.60.0",
+        "fastapi>=0.100.0",
+        "uvicorn[standard]>=0.23.0",
+        "websockets>=11.0",
+        "requests>=2.28.0",
+        "python-multipart>=0.0.5",
     ],
     python_requires=">=3.7",
     classifiers=[
@@ -44,14 +49,6 @@ setup(
     },
     keywords="gpu profiling performance optimization pytorch cuda",
     extras_require={
-        'dashboard': [
-            'fastapi>=0.100.0',
-            'uvicorn[standard]>=0.23.0',
-            'websockets>=11.0',
-            'requests>=2.28.0',
-            'python-multipart>=0.0.5',
-            'pyngrok>=5.0.0',
-        ],
         'dev': [
             'pytest>=7.0.0',
             'pytest-cov>=4.0.0',

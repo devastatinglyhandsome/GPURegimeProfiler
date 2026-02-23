@@ -10,19 +10,13 @@ import time
 from gpu_regime_profiler import (
     GPUProfiler,
     DashboardClient,
-    start_dashboard_with_ngrok
+    start_dashboard_server
 )
 
-# Optional: Set ngrok token for public access
-# GPUProfiler.ngrok_token = "your_ngrok_token"
-
-# Start dashboard with ngrok (for remote access)
-# For local only: start_dashboard_server(port=8080, blocking=False)
-url = start_dashboard_with_ngrok(port=8080, blocking=False)
-if url:
-    print(f"Dashboard URL: {url}")
-else:
-    print("Dashboard running at http://127.0.0.1:8080")
+# Start dashboard (local only - secure)
+start_dashboard_server(port=8080, blocking=False)
+print("Dashboard running at http://127.0.0.1:8080")
+print("Open this URL in your browser to see real-time updates!\n")
 
 time.sleep(2)  # Wait for server to start
 
@@ -30,8 +24,7 @@ time.sleep(2)  # Wait for server to start
 profiler = GPUProfiler()
 client = DashboardClient(server_url='http://127.0.0.1:8080')
 
-print("\nProfiling operations...")
-print("Open the dashboard URL in your browser to see real-time updates!\n")
+print("Profiling operations...\n")
 
 # Profile various operations
 for i in range(20):

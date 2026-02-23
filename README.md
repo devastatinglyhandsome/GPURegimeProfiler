@@ -42,16 +42,16 @@ You get a clear error: `CUDANotAvailableError` with suggestions (check `nvidia-s
 
 ---
 
-## Real-time dashboard (optional)
+## Real-time dashboard
 
-The dashboard shows regime breakdown, runtimes, and GPU utilization in a browser. **Use local mode first**; it works without any account or token.
+The dashboard shows regime breakdown, runtimes, and GPU utilization in a browser. **Local access only** - secure by default.
 
 ![Dashboard](gpu_regime_profiler/docs/dashboard.png)
 
-### Local dashboard (recommended)
+### Local dashboard
 
 ```bash
-pip install 'gpu-regime-profiler[dashboard]'
+pip install gpu-regime-profiler
 ```
 
 In one terminal or notebook cell:
@@ -76,14 +76,14 @@ _, profile = profiler.profile_with_result(torch.matmul, a, a)
 client.send_profile(profile)
 ```
 
-Refresh the page to see updates. No ngrok, no token, no signup.
+Refresh the page to see updates.
 
-### On Google Colab (no ngrok)
+### On Google Colab
 
-Use the Colab helper so you don't need ngrok. In a Colab cell:
+Use the Colab helper to embed the dashboard. In a Colab cell:
 
 ```python
-!pip install -q 'gpu-regime-profiler[dashboard]'
+!pip install -q gpu-regime-profiler
 ```
 
 ```python
@@ -99,34 +99,20 @@ _, profile = profiler.profile_with_result(torch.matmul, a, a)
 client.send_profile(profile)
 ```
 
-The dashboard appears in the notebook (iframe) or via Colab's "Open preview" for port 8080. No ngrok, no SSL errors.
+The dashboard appears in the notebook (iframe) or via Colab's "Open preview" for port 8080.
 
-### Remote / Colab with ngrok (only if you need a public URL from outside Colab)
+### Remote access (SSH port forwarding)
 
-If you run code in Colab and want to open the dashboard from your laptop in a separate browser. Options:
+If you need to access the dashboard from your laptop while code runs on a remote server:
 
-1. **Colab port preview (recommended)**  
-   Use `start_dashboard_colab(port=8080)` above, then use the "Open preview" link Colab shows. No ngrok.
+```bash
+# On your laptop, forward the port via SSH
+ssh -L 8080:localhost:8080 user@remote-host
 
-2. **ngrok (skip if Colab preview works)**  
-   In Colab, use “Local runtimes” or the built-in port preview if available (e.g. “Open preview” for the port you use). No ngrok.
-
-2. **ngrok**  
-   Only if you specifically want an ngrok URL:
-   - Sign up at [ngrok](https://ngrok.com), get an auth token.
-   - Install dashboard extras and set the token, then start the server:
-
-```python
-from gpu_regime_profiler import GPUProfiler, start_dashboard_with_ngrok
-
-GPUProfiler.ngrok_token = "YOUR_NGROK_TOKEN"
-url = start_dashboard_with_ngrok(port=8080, blocking=False)
-print(url)  # Open this in your browser
+# Then open http://localhost:8080 in your laptop's browser
 ```
 
-If ngrok fails (connection refused, auth, or tunnel issues), use the **local dashboard** on the machine where the code runs and open it via that machine’s port (e.g. Colab’s port preview or SSH port forwarding). The dashboard itself does not require ngrok.
-
-**ERR_SSL_PROTOCOL_ERROR / "invalid response"**: Open the URL with **https://** (ngrok gives HTTPS). Try incognito or a different browser; some networks or proxies break ngrok's TLS. If it still fails, skip ngrok and use Colab port preview or SSH port forwarding instead.
+This is secure and doesn't expose your dashboard to the internet.
 
 ---
 
@@ -136,14 +122,14 @@ If ngrok fails (connection refused, auth, or tunnel issues), use the **local das
 - **MEMORY_BOUND** – Limited by memory bandwidth; compute units are underused.
 - **COMPUTE_BOUND** – Limited by math throughput; good GPU utilization.
 
-Most people don’t realize a “slow kernel” is often just waiting on memory; this tool makes that explicit.
+Most people don't realize a "slow kernel" is often just waiting on memory; this tool makes that explicit.
 
 ---
 
 ## Overhead and calibration
 
 - **Profiling overhead**: The instrumentation is designed to add minimal latency; the main cost is a few CUDA events per op. Calibration runs once per GPU and is cached in `~/.gpu_profiler/`.
-- **Different GPUs**: Calibration measures your card’s peak FLOPS and memory bandwidth, so consumer vs datacenter (e.g. A100, H100, T4, RTX) differences are reflected in the thresholds.
+- **Different GPUs**: Calibration measures your card's peak FLOPS and memory bandwidth, so consumer vs datacenter (e.g. A100, H100, T4, RTX) differences are reflected in the thresholds.
 
 ---
 
@@ -176,7 +162,7 @@ gpu-profile --dashboard --dashboard-port 8080
 - Python 3.7+
 - PyTorch with CUDA
 - NVIDIA GPU  
-- Dashboard: `pip install 'gpu-regime-profiler[dashboard]'` (adds FastAPI, uvicorn, etc.)
+- Dashboard dependencies included by default
 
 ---
 
